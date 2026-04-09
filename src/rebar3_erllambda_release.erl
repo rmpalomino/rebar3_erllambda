@@ -90,10 +90,10 @@ generate_start_script( Dir, Command, Script ) ->
             ok = make_executable(Filename ),
             % it can already exist from previous run. remove it
             % technically we can just keep it
-            % TODO rework for NO symlinks
             file:delete(BootFilename),
-            %% create necessary symlink
-            ok = file:make_symlink( "/var/task/" ++ rebar3_erllambda:list(Command), BootFilename);
+            % Create executable boostrap script that wraps the start script
+            ok = file:write_file( BootFilename, bootstrap_script(Command) ),
+            ok = make_executable(BootFilename);
         {error, Reason} ->
             throw( {generate_start_script_failed, Reason} )
     end.            
@@ -120,3 +120,8 @@ start_script( ErllambdaDir ) ->
         {error, Reason} ->
             throw( {erllambda_script_missing, Reason} )
     end.
+
+
+bootstrap_script(Command) ->
+    rebar_api:info( "Command ~s", [Command] ),
+    io_lib:format("~s~n~s~n~s~n", ["#!/bin/sh", "cd $LAMBDA_TASK_ROOT", "exec ./" ++ Command]).
